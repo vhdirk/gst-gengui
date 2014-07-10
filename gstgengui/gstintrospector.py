@@ -149,6 +149,7 @@ class Element(object):
     def connect_child_removed(self, callback):
         self._Gst_element.connect("child-removed", self._child_changed, callback)
 
+
 class PipelineIntrospector(object):
     def __init__(self, pipeline, ignore_list):
         self.pipeline = pipeline

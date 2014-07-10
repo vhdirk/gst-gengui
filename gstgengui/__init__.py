@@ -10,5 +10,5 @@ Render local readme files before sending off to Github.
 
 __version__ = '1.2.0'
 
-from . import gtk_controller, gstintrospector, gstmanager, event
+from . import gtk_controller, gstintrospector, pipelinemanager
 

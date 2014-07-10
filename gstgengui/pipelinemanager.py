@@ -35,15 +35,23 @@ gi.require_version('Gst', '1.0')
 from gi.repository import GObject, Gst, Gtk
 
 pipeline_desc = "videotestsrc ! xvimagesink"
-try:
-    import easyevent
-except Exception:
-    from . import event as easyevent
 
 
-class PipelineManager(easyevent.User):
+class PipelineManager(GObject.GObject):
+
+#    __gsignals__ = {
+#        "bin-added":    (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, (GObject.TYPE_OBJECT,)),
+#        "bin-linked":   (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, (GObject.TYPE_OBJECT,)),
+#        "bin-unlinked": (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, (GObject.TYPE_OBJECT,)),
+#        "bin-removed":  (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, (GObject.TYPE_OBJECT,)),
+#        
+#        "properties-changed": (GObject.SIGNAL_RUN_FIRST, GObject.TYPE_NONE, (GObject.TYPE_OBJECT,)),
+#    }
+
+
     def __init__(self, pipeline_string=None, name=None):
-        easyevent.User.__init__(self)
+        super().__init__()
+        
         self.send_debug = False
         self.name = name
         if pipeline_string is not None:
@@ -87,6 +95,8 @@ class PipelineManager(easyevent.User):
             if self.name is not None:
                 e = "{0} : {1}".format(self.name, e)
             logger.error('Error in parse_description: {0}'.format(e))
+            
+            #TODO
             self.launch_event('gst_error', str(e))
             return
         if self.name is not None:
@@ -102,6 +112,8 @@ class PipelineManager(easyevent.User):
 
     def run(self, *args):
         logger.info("Starting pipeline {0}".format(self.pipeline.get_name()))
+        
+        #TODO
         self.launch_event("sos", self.pipeline)
         self.pipeline.set_state(Gst.State.PLAYING)
         # Returning false if it was called by a gobject.timeout
@@ -190,12 +202,15 @@ class PipelineManager(easyevent.User):
 
     def poll_property(self, element_name, property):
         value = self.get_property_on_element(element_name, property)
+        
+        #TODO
         self.launch_event("{0}_value_change".format(property), {"source": element_name, "property": property, "value": value})
         return self.do_poll
 
     def send_caps(self, pad, caps):
-        logger.debug("Got negociated caps")
+        logger.debug("Got negotiated caps")
         caps_str = caps.to_string()
+        #TODO
         self.launch_event("caps", caps_str)
         return True
 
@@ -205,13 +220,16 @@ class PipelineManager(easyevent.User):
             err, debug = message.parse_error()
             error_string = "{0} {1}".format(err, debug)
             logger.info("Error: {0}".format(error_string))
+            #TODO
             self.launch_event("gst_error", error_string)
         elif t == Gst.MessageType.EOS:
+            #TODO
             self.launch_event("eos", self.pipeline.get_name())
         elif t == Gst.MessageType.ELEMENT:
             name = message.get_structure().get_name()
             res = message.get_structure()
             source = message.src.get_name()  # (str(message.src)).split(":")[2].split(" ")[0]
+            #TODO
             self.launch_event(name, {"source": source, "data": res})
             self.launch_event('gst_element_message', {"source": source, "name": name, "data": res})
         else:
