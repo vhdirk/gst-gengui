@@ -26,6 +26,7 @@ __package__= 'gstgengui'
 
 import os.path
 import optparse
+import argparse
 import logging
 import locale
 import gettext
@@ -50,18 +51,33 @@ except (ValueError, AttributeError):
 from gi.repository import GLib, GObject, Gtk, Gio, Gdk, Gst
 
 
-class OptparseDummyDefaults():
-    def get(*args):
-        return ""
-
 try:
    tmp = Gtk.get_option_group
 except AttributeError:
     def get_option_group():
     
-        optlist=[GLib.option.make_option("--gtk-module",
-                                             metavar="MODULES",
-                                             help="Load additional GTK+ modules"),
+        group = GLib.option.OptionGroup(
+            "gtk", "GTK+ Options", "Show GTK+ Options",
+            option_list=[
+                 GLib.option.make_option("--class",
+                                         metavar="CLASS",
+                                         help="Program class as used by the window manager"),
+                 GLib.option.make_option("--name",
+                                         metavar="NAME",
+                                         help="Program name as used by the window manager"),
+                 GLib.option.make_option("--display",
+                                         metavar="DISPLAY",
+                                         help="X display to use"),
+                 GLib.option.make_option("--gdk-debug",
+                                         metavar="FLAGS",
+                                         help="GDK debugging flags to set"),
+                 GLib.option.make_option("--gdk-no-debug",
+                                         metavar="FLAGS",
+                                         help="GDK debugging flags to unset"),
+                                         
+                 GLib.option.make_option("--gtk-module",
+                                         metavar="MODULES",
+                                         help="Load additional GTK+ modules"),
                  GLib.option.make_option("--g-fatal-warnings",
                                          action="store_true", default="",
                                          help="Make all warnings fatal"),
@@ -70,20 +86,10 @@ except AttributeError:
                                          help="GTK+ debugging flags to set"),
                  GLib.option.make_option("--gtk-no-debug",
                                          metavar="FLAGS",
-                                         help="GTK+ debugging flags to set"),
-                    ]
+                                         help="GTK+ debugging flags to set"),                  
+                 ])
 
-        group = GLib.option.OptionGroup(
-            "gtk", "GTK+ Options", "Show GTK+ Options",
-            option_list=optlist)
-
-    
-        ggroup = group.get_option_group(None)
-        Gdk.add_option_entries_libgtk_only(ggroup)
-        
-        setattr(ggroup, 'values', dict([(opt.dest,"") for opt in optlist]))
-
-        return ggroup
+        return group
     
     Gtk.get_option_group = get_option_group
 
@@ -144,10 +150,7 @@ except AttributeError:
                                                  help="Disable spawning a helper process while scanning the registry"),    
                         ])
     
-        
-        ggroup = group.get_option_group(None)
-
-        return ggroup
+        return group
         
     Gst.init_get_option_group = init_get_option_group
 
@@ -174,6 +177,7 @@ def main():
     
     Gst.init(sys.argv)
     Gtk.init(sys.argv)
+    Gdk.init(sys.argv)
     try:
         parser.parse_args()
     except optparse.BadOptionError as ex:
