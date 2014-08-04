@@ -296,6 +296,54 @@ class ElementUIPropertyViewFile(ElementUIPropertyView):
 
 #===============================================================================
 
+class ElementUISignalParam(Gtk.Frame):
+
+    _get_value = None
+    _set_value = None
+
+    def __init__(self, value_type):
+        super().__init__()
+        self.set_shadow_type(Gtk.ShadowType.NONE)
+        widget = None
+        if value_type in NUMBER_GTYPES:
+            widget = Gtk.SpinButton()
+            
+            self._get_value = widget.get_value
+            self._set_value = widget.set_value
+        
+        if value_type == GObject.TYPE_BOOLEAN:
+            widget = Gtk.Switch()
+                        
+            self._get_value = widget.get_active
+            self._set_value = widget.set_active
+    
+        if value_type in STRING_GTYPES:
+#            if prop.name in ["location", "filename", "file", "uri"]:
+#                return Gtk.FileChooserButton()
+#            else:
+            widget = Gtk.Entry()
+            self._get_value = widget.get_text
+            self._set_value = widget.set_text
+    
+#        if value_type.is_a(GObject.TYPE_ENUM):
+#            return ElementUIPropertyViewChoice(element, prop)    
+#    
+        if widget:
+            self.add(widget)
+
+
+    @property
+    def value(self):
+        if self._get_value:
+            return self._get_value()
+        else:
+            return None
+    
+    @value.setter        
+    def value(self, val):
+        if self._set_value:
+            self._set_value(val)
+       
 
 
 class ElementUISignalView(Gtk.Grid):
@@ -303,6 +351,8 @@ class ElementUISignalView(Gtk.Grid):
     def __init__(self, element, signal_query):
         super().__init__()
     
+        self.element = element
+        self.signal_query = signal_query
     
 #        print ('constructing ui for signal', signal_query.signal_name)
 #        
@@ -314,50 +364,56 @@ class ElementUISignalView(Gtk.Grid):
 
 #        print ('signal_flags', signal_query.signal_flags) 
         
+        frame = Gtk.Frame()
+        #frame.set_padding(6)
+        self.attach(frame, 0, 0, 1, 2)
+        self.param_grid = Gtk.Grid()
+        frame.add(self.param_grid)
+        
 
-        
-        return_label = Gtk.Label(str(signal_query.return_type))
-        return_value = Gtk.Entry()
-        
-        self.attach(return_label, 0, 0, 1, 1)
-        self.attach(return_value, 0, 1, 1, 1)
-        
-        spacer_label = Gtk.Label('=')
-        spacer_label.set_justify(Gtk.Justification.CENTER)
-        self.attach(spacer_label, 1, 0, 1, 2)
-        
-        print ('param_types')
+#        
+#        spacer_label = Gtk.Label('=')
+#        spacer_label.set_justify(Gtk.Justification.CENTER)
+#        self.attach(spacer_label, 1, 0, 1, 2)
+
+        self.param_widgets = []
+#        
         for i, param_type in enumerate(signal_query.param_types):
             param_label = Gtk.Label(str(param_type))
-            param_value = Gtk.Entry()
+            param_value = ElementUISignalParam(param_type)
             
-            self.attach(param_label, i+2, 0, 1, 1)
-            self.attach(param_value, i+2, 1, 1, 1)
-#            
-#            sig_label = Gtk.Label(sig_query.signal_name)
-#            sig_label.set_justify(Gtk.Justification.LEFT)
-#            sig_label.set_alignment(Gtk.Align.START, Gtk.Align.CENTER)
-#            sig_label.show()
-#            
-#            #prop_label.set_tooltip_text(prop.blurb)
-#            self.signalgrid.attach(sig_label, 0, i+2, 1, 1)
-#    #        m_param_labels.push_back(param_label);
+            self.param_grid.attach(param_label, i, 0, 1, 1)
+            self.param_grid.attach(param_value, i, 1, 1, 1)
+            
+            self.param_widgets.append(param_value)
 
-#            #prop_view.disable_construct_only(playing);
-#            sig_view.show()
-#            self.signalgrid.attach(sig_view, 1, i+2, 1, 1);
+        call_button = Gtk.Button()
+        call_button.set_image(Gtk.Image.new_from_icon_name("go-jump", Gtk.IconSize.BUTTON))
+
         
-        call_button = Gtk.Button("call")
-        self.attach(call_button, i+2, 0, 1, 2)
+        self.attach(call_button, i+1, 0, 1, 2)
+        call_button.set_tooltip_text(_("call action signal: ") + signal_query.signal_name)
+
         
+        
+        return_label = Gtk.Label(str(signal_query.return_type))
+        self.return_value = ElementUISignalParam(signal_query.return_type)
+        
+        self.attach(return_label, i+2, 0, 1, 1)
+        self.attach(self.return_value, i+2, 1, 1, 1)
+        
+        
+        call_button.connect('clicked', self.on_call_action)
         self.show_all()
         
 
     def on_call_action(self, button):
-        pass
-
-#===============================================================================
-
+        
+        func_args = [param.value for param in self.param_widgets]
+        
+        retval = self.element.emit(self.signal_query.signal_name, *func_args)
+        self.return_value.value = retval
+ 
 
 class ElementUI(Gtk.ScrolledWindow):
 
@@ -378,7 +434,7 @@ class ElementUI(Gtk.ScrolledWindow):
         self.name = Gtk.Label()
         self.name.set_justify(Gtk.Justification.LEFT)
         self.name.set_margin_bottom(14)
-        #self.name.set_alignment(Gtk.Align.START, Gtk.Align.CENTER)
+        self.name.set_alignment(Gtk.Align.START, Gtk.Align.CENTER)
 
         self.optionmenu = Gtk.ComboBoxText()
         hpane = Gtk.HPaned()
@@ -391,92 +447,97 @@ class ElementUI(Gtk.ScrolledWindow):
         self.name.set_use_markup(True)
         self.set_page_title(element.get_name())
 
-        self.optionmenu.set_visible(self.view_mode is ElementUI.VIEW_MODE_COMPACT)
+        #self.optionmenu.set_visible(self.view_mode is ElementUI.VIEW_MODE_COMPACT)
 
         spacing = 10;
         margin = 10;
         
+        #TODO: move these to separate functions
         
-        #TODO: hide expanders when there's nothing to fill them with
-        property_expander = Gtk.Expander.new(_("Properties"))
-        property_expander.set_expanded(True)
-        self.propertygrid = Gtk.Grid()
-        property_expander.add(self.propertygrid)
-        prop_box.pack_start(property_expander, expand=True, fill=True, padding=6)      
-
-        self.propertygrid.set_column_spacing(spacing)
-        self.propertygrid.set_row_spacing(spacing)
-
-
-        self.propertygrid.set_margin_top(margin)
-        self.propertygrid.set_margin_bottom(margin)
-        self.propertygrid.set_margin_left(margin)
-        self.propertygrid.set_margin_right(margin)
-        
-        
-        signal_expander = Gtk.Expander.new(_("Signals"))
-        signal_expander.set_expanded(True)
-        self.signalgrid = Gtk.Grid()
-        signal_expander.add(self.signalgrid)
-        prop_box.pack_start(signal_expander, expand=True, fill=True, padding=6)
-
-        
-        self.signalgrid.set_column_spacing(spacing)
-        self.signalgrid.set_row_spacing(spacing)
-
-        self.signalgrid.set_margin_top(margin)
-        self.signalgrid.set_margin_bottom(margin)
-        self.signalgrid.set_margin_left(margin)
-        self.signalgrid.set_margin_right(margin)
-        
-        
-        
-        for i, prop in enumerate(GObject.list_properties(element)):
-            prop_view = ElementUIPropertyView.create(element, prop)
+        if len(GObject.list_properties(element)) > 0:
             
-            if not prop_view: continue
+            #TODO: hide expanders when there's nothing to fill them with
+            property_expander = Gtk.Expander.new(_("Properties"))
+            property_expander.set_expanded(True)
+            self.propertygrid = Gtk.Grid()
+            property_expander.add(self.propertygrid)
+            prop_box.pack_start(property_expander, expand=True, fill=True, padding=6)      
 
-            prop_label = Gtk.Label(prop.name)
-            prop_label.set_justify(Gtk.Justification.LEFT)
-            prop_label.set_alignment(Gtk.Align.START, Gtk.Align.CENTER)
-            prop_label.show()
+            self.propertygrid.set_column_spacing(spacing)
+            self.propertygrid.set_row_spacing(spacing)
+
+
+            self.propertygrid.set_margin_top(margin)
+            self.propertygrid.set_margin_bottom(margin)
+            self.propertygrid.set_margin_left(margin)
+            self.propertygrid.set_margin_right(margin)
             
-            prop_label.set_tooltip_text(prop.blurb)
-            self.propertygrid.attach(prop_label, 0, i+2, 1, 1)
-    #        m_param_labels.push_back(param_label);
+                 
+            
+            for i, prop in enumerate(GObject.list_properties(element)):
+                prop_view = ElementUIPropertyView.create(element, prop)
+                
+                if not prop_view: continue
 
-            #prop_view.disable_construct_only(playing);
-            prop_view.show()
-            self.propertygrid.attach(prop_view, 1, i+2, 1, 1);
-    #        m_param_views.push_back(param_view);
+                prop_label = Gtk.Label(prop.name)
+                prop_label.set_justify(Gtk.Justification.LEFT)
+                prop_label.set_alignment(Gtk.Align.START, Gtk.Align.CENTER)
+                prop_label.show()
+                
+                prop_label.set_tooltip_text(prop.blurb)
+                self.propertygrid.attach(prop_label, 0, i+2, 1, 1)
+        #        m_param_labels.push_back(param_label);
+
+                #prop_view.disable_construct_only(playing);
+                prop_view.show()
+                self.propertygrid.attach(prop_view, 1, i+2, 1, 1);
+        #        m_param_views.push_back(param_view);
 
         
         
-        i = 0
-        for sigid in GObject.signal_list_ids(element):
-        
-            sig_query = GObject.signal_query(sigid)
+        if len(GObject.signal_list_ids(element)) > 0:
             
-            #only show action signals
-            if not sig_query.signal_flags & GObject.SignalFlags.ACTION:
-                continue
-        
-            sig_view = ElementUISignalView(element, sig_query)
-            
-            sig_label = Gtk.Label(sig_query.signal_name)
-            sig_label.set_justify(Gtk.Justification.LEFT)
-            sig_label.set_alignment(Gtk.Align.START, Gtk.Align.CENTER)
-            sig_label.show()
-            
-            #prop_label.set_tooltip_text(prop.blurb)
-            self.signalgrid.attach(sig_label, 0, i+2, 1, 1)
-    #        m_param_labels.push_back(param_label);
+            signal_expander = Gtk.Expander.new(_("Signals"))
+            signal_expander.set_expanded(True)
+            self.signalgrid = Gtk.Grid()
+            signal_expander.add(self.signalgrid)
+            prop_box.pack_start(signal_expander, expand=True, fill=True, padding=6)
 
-            #prop_view.disable_construct_only(playing);
-            sig_view.show()
-            self.signalgrid.attach(sig_view, 1, i+2, 1, 1);
+            
+            self.signalgrid.set_column_spacing(spacing)
+            self.signalgrid.set_row_spacing(spacing)
 
-            i+=1
+            self.signalgrid.set_margin_top(margin)
+            self.signalgrid.set_margin_bottom(margin)
+            self.signalgrid.set_margin_left(margin)
+            self.signalgrid.set_margin_right(margin)
+            
+            
+            i = 0
+            for sigid in GObject.signal_list_ids(element):
+            
+                sig_query = GObject.signal_query(sigid)
+                
+                #only show action signals
+                if not sig_query.signal_flags & GObject.SignalFlags.ACTION:
+                    continue
+            
+                sig_view = ElementUISignalView(element, sig_query)
+                
+                sig_label = Gtk.Label(sig_query.signal_name)
+                sig_label.set_justify(Gtk.Justification.LEFT)
+                sig_label.set_alignment(Gtk.Align.START, Gtk.Align.CENTER)
+                sig_label.show()
+                
+                #prop_label.set_tooltip_text(prop.blurb)
+                self.signalgrid.attach(sig_label, 0, i+2, 1, 1)
+        #        m_param_labels.push_back(param_label);
+
+                #prop_view.disable_construct_only(playing);
+                sig_view.show()
+                self.signalgrid.attach(sig_view, 1, i+2, 1, 1);
+
+                i+=1
             
 
         self.show_all()
