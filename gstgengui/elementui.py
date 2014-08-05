@@ -98,9 +98,12 @@ class ElementUIPropertyViewNumber(ElementUIPropertyView):
         # As the step size is unknown and variable, 100 steps seems reasonable
         value_range = prop.maximum - prop.minimum
         stepsize = value_range/100.0
+        
         self.adjustment = Gtk.Adjustment(prop.default_value, prop.minimum, prop.maximum, stepsize)
         self.spinbutton = Gtk.SpinButton()
-        self.spinbutton.set_adjustment(self.adjustment)
+        #self.spinbutton.set_adjustment(self.adjustment)
+        num_digits = 0 if self.is_integer else 3
+        self.spinbutton.configure(self.adjustment, stepsize, num_digits)
 
         grid_spin.attach(self.spinbutton, 1, 0, 2, 1)
 
@@ -118,7 +121,7 @@ class ElementUIPropertyViewNumber(ElementUIPropertyView):
             self.hscale.set_digits(2)
 
         self.widget_sighandle = self.adjustment.connect('value-changed', self.on_value_changed)
-        
+                
         if prop.flags & GObject.PARAM_READABLE:
             self.update(element, prop)
 
@@ -137,7 +140,10 @@ class ElementUIPropertyViewNumber(ElementUIPropertyView):
         
     def update(self, elem, prop):
         with GObject.signal_handler_block(self.adjustment, self.widget_sighandle):
-            self.adjustment.set_value(elem.get_property(prop.name))
+        
+            value = elem.get_property(prop.name)
+            if value is not None:
+                self.adjustment.set_value(value)
 
 
 #-------------------------------------------------------------------------------
@@ -304,6 +310,7 @@ class ElementUISignalParam(Gtk.Frame):
     def __init__(self, value_type):
         super().__init__()
         self.set_shadow_type(Gtk.ShadowType.NONE)
+        
         widget = None
         if value_type in NUMBER_GTYPES:
             widget = Gtk.SpinButton()
@@ -325,9 +332,18 @@ class ElementUISignalParam(Gtk.Frame):
             self._get_value = widget.get_text
             self._set_value = widget.set_text
     
-#        if value_type.is_a(GObject.TYPE_ENUM):
-#            return ElementUIPropertyViewChoice(element, prop)    
-#    
+        if value_type.is_a(GObject.TYPE_ENUM):
+            widget = Gtk.ComboBoxText()
+            
+#            if value_type.has_value_table:
+#                values = prop.enum_class.__enum_values__
+#                for index in values:
+#                    widget.append(str(index), values[index].value_name)
+   
+            self._get_value = widget.get_active
+            self._set_value = widget.set_active
+   
+   
         if widget:
             self.add(widget)
 
