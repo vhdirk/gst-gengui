@@ -86,14 +86,14 @@ class ElementUIPropertyViewNumber(ElementUIPropertyView):
         
         # spin button stuff
         grid_spin = Gtk.Grid()
+        grid_spin.set_column_homogeneous(True)
         self.add(grid_spin)
         grid_spin.set_hexpand(True)
-
-        self.show()
 
         self.label_lower = Gtk.Label("{}".format(prop.minimum))
         grid_spin.attach(self.label_lower, 0, 0, 1, 1)
         self.label_lower.set_justify(Gtk.Justification.LEFT)
+        self.label_lower.props.halign = Gtk.Align.START
 
         # As the step size is unknown and variable, 100 steps seems reasonable
         value_range = prop.maximum - prop.minimum
@@ -110,6 +110,7 @@ class ElementUIPropertyViewNumber(ElementUIPropertyView):
         self.label_upper = Gtk.Label("{}".format(prop.maximum))
         grid_spin.attach(self.label_upper, 3, 0, 1, 1)
         self.label_upper.set_justify(Gtk.Justification.RIGHT)
+        self.label_upper.props.halign = Gtk.Align.END
 
         self.hscale = Gtk.HScale()
         self.hscale.set_adjustment(self.adjustment);
@@ -370,30 +371,14 @@ class ElementUISignalView(Gtk.Grid):
         self.element = element
         self.signal_query = signal_query
     
-#        print ('constructing ui for signal', signal_query.signal_name)
-#        
-#        print ('count', signal_query.count)
-#        print ('itype', signal_query.itype)
-#        print ('return_type', signal_query.return_type)
-#        print ('signal_id', signal_query.signal_id)
-#        print ('index', signal_query.index)
-
-#        print ('signal_flags', signal_query.signal_flags) 
-        
         frame = Gtk.Frame()
-        #frame.set_padding(6)
+
         self.attach(frame, 0, 0, 1, 2)
         self.param_grid = Gtk.Grid()
         frame.add(self.param_grid)
         
-
-#        
-#        spacer_label = Gtk.Label('=')
-#        spacer_label.set_justify(Gtk.Justification.CENTER)
-#        self.attach(spacer_label, 1, 0, 1, 2)
-
         self.param_widgets = []
-#        
+             
         for i, param_type in enumerate(signal_query.param_types):
             param_label = Gtk.Label(str(param_type))
             param_value = ElementUISignalParam(param_type)
@@ -450,7 +435,7 @@ class ElementUI(Gtk.ScrolledWindow):
         self.name = Gtk.Label()
         self.name.set_justify(Gtk.Justification.LEFT)
         self.name.set_margin_bottom(14)
-        self.name.set_alignment(Gtk.Align.START, Gtk.Align.CENTER)
+        self.name.props.halign = Gtk.Align.START
 
         self.optionmenu = Gtk.ComboBoxText()
         hpane = Gtk.HPaned()
@@ -497,7 +482,8 @@ class ElementUI(Gtk.ScrolledWindow):
 
                 prop_label = Gtk.Label(prop.name)
                 prop_label.set_justify(Gtk.Justification.LEFT)
-                prop_label.set_alignment(Gtk.Align.START, Gtk.Align.CENTER)
+                prop_label.props.halign = Gtk.Align.START
+                prop_label.props.valign = Gtk.Align.CENTER
                 prop_label.show()
                 
                 prop_label.set_tooltip_text(prop.blurb)
@@ -542,7 +528,8 @@ class ElementUI(Gtk.ScrolledWindow):
                 
                 sig_label = Gtk.Label(sig_query.signal_name)
                 sig_label.set_justify(Gtk.Justification.LEFT)
-                sig_label.set_alignment(Gtk.Align.START, Gtk.Align.CENTER)
+                sig_label.props.halign = Gtk.Align.START
+                sig_label.props.valign = Gtk.Align.CENTER
                 sig_label.show()
                 
                 #prop_label.set_tooltip_text(prop.blurb)
