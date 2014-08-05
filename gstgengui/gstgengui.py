@@ -56,8 +56,9 @@ from elementui import *
 ROW_ELEMENT_NAME,
 ROW_ELEMENT_HANDLE,
 ROW_ELEMENT_CHILD_ADDED,
-ROW_ELEMENT_CHILD_REMOVED
-) = range(4)
+ROW_ELEMENT_CHILD_REMOVED,
+ROW_PAGE_ID
+) = range(5)
 
 
 
@@ -133,7 +134,7 @@ class LaunchGUI(Gtk.ApplicationWindow):
         
         #  element tree
         self.view = Gtk.TreeView()
-        self.store = Gtk.TreeStore(str, GObject.TYPE_OBJECT, int, int)
+        self.store = Gtk.TreeStore(str, GObject.TYPE_OBJECT, int, int, int)
         self.view.set_model(self.store)
         self.view.set_headers_visible(False)
         column = Gtk.TreeViewColumn("Title", Gtk.CellRendererText(), text=ROW_ELEMENT_NAME)
@@ -296,8 +297,9 @@ class LaunchGUI(Gtk.ApplicationWindow):
         row = []
         row.insert(ROW_ELEMENT_NAME, elem.get_name())
         row.insert(ROW_ELEMENT_HANDLE, elem)
-        row.insert(ROW_ELEMENT_CHILD_ADDED, None)
-        row.insert(ROW_ELEMENT_CHILD_REMOVED, None)
+        row.insert(ROW_ELEMENT_CHILD_ADDED, -1)
+        row.insert(ROW_ELEMENT_CHILD_REMOVED, -1)
+        row.insert(ROW_PAGE_ID, -1)
 
         newiter = self.store.append(treeiter, row)
         
@@ -402,15 +404,14 @@ class LaunchGUI(Gtk.ApplicationWindow):
         store, titer = selection.get_selected()
 
         if not titer or not store.iter_is_valid(titer): return
-
-        print (store[titer][ROW_ELEMENT_NAME])
         
-        #TODO: make new element ui tab for element
-        #self.element_ui.set_element(store[titer][ROW_ELEMENT_HANDLE]);
-        page = ElementUI(store[titer][ROW_ELEMENT_HANDLE])
-        idx = self.notebook.append_page(page, store[titer][ROW_ELEMENT_NAME])
-        self.notebook.set_current_page(idx)
-        page.show()
+        if store[titer][ROW_PAGE_ID] < 0:
+            #self.element_ui.set_element(store[titer][ROW_ELEMENT_HANDLE]);
+            page = ElementUI(store[titer][ROW_ELEMENT_HANDLE])
+            store[titer][ROW_PAGE_ID] = self.notebook.append_page(page, store[titer][ROW_ELEMENT_NAME])
+            page.show()
+        
+        self.notebook.set_current_page(store[titer][ROW_PAGE_ID])
 
     def get_history_filename(self):
         
