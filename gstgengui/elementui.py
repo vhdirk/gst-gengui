@@ -416,11 +416,10 @@ class ElementUISignalView(Gtk.Grid):
         self.return_value.value = retval
  
 
-class ElementUI(Gtk.ScrolledWindow):
 
-   
+class ElementUI(Gtk.ScrolledWindow):
+  
     (VIEW_MODE_COMPACT, VIEW_MODE_FULL) = range(2)
-    
     
     def __init__(self, element, view_mode=VIEW_MODE_FULL):
         super().__init__() 
@@ -429,17 +428,17 @@ class ElementUI(Gtk.ScrolledWindow):
 
         self.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
 
-        prop_box = Gtk.VBox(False, 5)
+        prop_box = Gtk.VBox(False, 2)
+        prop_box.props.margin = 6
         self.add(prop_box)
             
         self.name = Gtk.Label()
         self.name.set_justify(Gtk.Justification.LEFT)
-        self.name.set_margin_bottom(14)
         self.name.props.halign = Gtk.Align.START
 
         self.optionmenu = Gtk.ComboBoxText()
         hpane = Gtk.HPaned()
-        prop_box.pack_start(self.name, expand=True, fill=True, padding=6)
+        prop_box.pack_start(self.name, expand=False, fill=True, padding=6)
 #        hpane.add1(self.name)
 #        hpane.add2(self.optionmenu)
 #        hpane.show()
@@ -455,14 +454,15 @@ class ElementUI(Gtk.ScrolledWindow):
         
         #TODO: move these to separate functions
         
+        #TODO: hide expanders when there's nothing to fill them with
+        
         if len(GObject.list_properties(element)) > 0:
             
-            #TODO: hide expanders when there's nothing to fill them with
             property_expander = Gtk.Expander.new(_("Properties"))
             property_expander.set_expanded(True)
             self.propertygrid = Gtk.Grid()
             property_expander.add(self.propertygrid)
-            prop_box.pack_start(property_expander, expand=True, fill=True, padding=6)      
+            prop_box.pack_start(property_expander, expand=False, fill=True, padding=6)      
 
             self.propertygrid.set_column_spacing(spacing)
             self.propertygrid.set_row_spacing(spacing)
@@ -503,7 +503,7 @@ class ElementUI(Gtk.ScrolledWindow):
             signal_expander.set_expanded(True)
             self.signalgrid = Gtk.Grid()
             signal_expander.add(self.signalgrid)
-            prop_box.pack_start(signal_expander, expand=True, fill=True, padding=6)
+            prop_box.pack_start(signal_expander, expand=False, fill=True, padding=6)
 
             
             self.signalgrid.set_column_spacing(spacing)
