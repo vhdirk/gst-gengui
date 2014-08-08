@@ -4,6 +4,9 @@
 
 """
 
+import collections
+from operator import itemgetter
+
 from gettext import gettext as _, ngettext
 
 import gi
@@ -99,7 +102,7 @@ class DebugUI(Gtk.ScrolledWindow):
         self.content.pack_start(default_frame, expand=False, fill=True, padding=6)
         
         default_box = Gtk.Box()
-        self.default_adjustment = self.make_level_slider_ui(default_box)
+        self.default_adjustment = self.make_level_slider_ui(default_box).get_adjustment()
         default_frame.add(default_box)
         
         
@@ -112,9 +115,11 @@ class DebugUI(Gtk.ScrolledWindow):
         custom_frame.add(custom_box) 
         
         custom_level_box = Gtk.Box()
-        self.custom_adjustment = self.make_level_slider_ui(custom_level_box)
+        
+        self.custom_scale = self.make_level_slider_ui(custom_level_box)
+        self.custom_adjustment = self.custom_scale.get_adjustment()
         custom_box.pack_start(custom_level_box, expand=False, fill=True, padding=0)
-
+        self.custom_scale.set_sensitive(False)
 
         self.custom_level_view = Gtk.TreeView()
         custom_box.pack_start(self.custom_level_view, expand=True, fill=True, padding=0)
@@ -153,11 +158,15 @@ class DebugUI(Gtk.ScrolledWindow):
 
         
         self.default_adjustment.connect('value-changed', self.set_default_level)
-        self.custom_adjustment.connect('value-changed', self.set_custom_level)
+        self.sighandle_custom_adjustment = self.custom_adjustment.connect('value-changed', self.set_custom_level)
         
         add_button.connect('clicked', self.show_add_window)
         remove_button.connect('clicked', self.remove_custom_categories)
         refresh_button.connect('clicked', self.refresh_categories)
+        
+        selection = self.custom_level_view.get_selection()
+        selection.set_mode(Gtk.SelectionMode.MULTIPLE)
+        selection.connect('changed', self.on_selection_changed)
         
         self.show_all()
         
@@ -179,7 +188,7 @@ class DebugUI(Gtk.ScrolledWindow):
         box.pack_start(scale, expand=True, fill=True, padding=6)
         box.pack_end(label_max, expand=False, fill=True, padding=6)
 
-        return scale.get_adjustment()
+        return scale
         
 
     def init_custom_levels(self):
@@ -235,7 +244,26 @@ class DebugUI(Gtk.ScrolledWindow):
         
         
         self.refresh_categories()
+    
+    
+    def on_selection_changed(self, selection):
+        model, rowiters = selection.get_selected_rows()
+               
+        self.custom_scale.set_sensitive(len(rowiters)>0)
         
+        if len(rowiters) == 0:
+            return
+            
+        #make the scale show the most common debug level, or the lowest if there's a draw
+        levels = [model[rowiter][ROW_DEBUG_CATEGORY].threshold for rowiter in rowiters]
+        
+        counter = collections.Counter(levels)
+        mc = sorted(counter.most_common(1), key=itemgetter(0))
+        
+        with GObject.signal_handler_block(self.custom_adjustment, self.sighandle_custom_adjustment):
+            self.custom_adjustment.set_value(mc[0][0])
+        
+    
     
     def populate_add_categories(self):
         
