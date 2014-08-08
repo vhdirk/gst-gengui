@@ -237,7 +237,7 @@ class Notebook(Gtk.Notebook):
     def _tab_close_cb(self, button, index):
         self.emit("page-remove-requested", index)
     
-    def append_page(self, child, tab_label, tab_icon=None):
+    def append_page(self, child, tab_label, tab_icon=None, closable=True):
 
         tab_header = Gtk.HBox()
         
@@ -255,11 +255,13 @@ class Notebook(Gtk.Notebook):
         tab_header.pack_end(close_button, expand=False, fill=False, padding=0)
         tab_header.show_all()
         
+        if not closable:
+            close_button.hide()
+        
         index = super().append_page(child, tab_header)
         
         if index >= -1:
             close_button.connect('clicked', self._tab_close_cb, index)
         
-        print (index)
         return index
     

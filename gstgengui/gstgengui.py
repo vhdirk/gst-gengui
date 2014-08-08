@@ -42,7 +42,7 @@ elif GLib.pyglib_version < (3,10,2):
 
 from misc import *
 from elementui import *
-
+from debugui import *
 
 
 
@@ -54,7 +54,7 @@ from elementui import *
 
 (
 ROW_ELEMENT_NAME,
-ROW_ELEMENT_HANDLE,
+ROW_ELEMENT_HANDLE,  #TODO: remove element handle and lookup element by name
 ROW_ELEMENT_CHILD_ADDED,
 ROW_ELEMENT_CHILD_REMOVED,
 ROW_PAGE_ID
@@ -78,8 +78,7 @@ class LaunchGUI(Gtk.ApplicationWindow):
         self.add(vbox)
 
         try:
-            icon = GdkPixbuf.Pixbuf.new_from_file("gst-launch.png")
-            self.set_icon(icon)
+            self.set_icon(GdkPixbuf.Pixbuf.new_from_file("gst-launch.png"))
         except GLib.GError as e:
             print (e)
             
@@ -148,7 +147,7 @@ class LaunchGUI(Gtk.ApplicationWindow):
         self.notebook = Notebook()
         self.notebook.connect('page-remove-requested', self.on_page_remove_requested)
         #TODO: debug ui might be better represented on a different level as the element_uis
-        # build_debug_page (notebook);
+        self.build_debug_page(self.notebook)
 
         # TODO: move this bunch to ElementUI
 #        prop_box = Gtk.VBox(False, 5)
@@ -222,12 +221,7 @@ class LaunchGUI(Gtk.ApplicationWindow):
 
 
     def build_debug_page(self, notebook):
-        pass
-    #{
-    #  //TODO: handle debug page lifetime
-    #  Gste::DebugUI* debug_ui = new DebugUI();
-    #  notebook.append_page(*debug_ui, _("Debug"));
-    #}
+        notebook.append_page(DebugUI(), _("Debug"), closable=False)
 
 
     def on_parse(self, *args):
